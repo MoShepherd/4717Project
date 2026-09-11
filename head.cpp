@@ -1,7 +1,7 @@
-#include <array>
+#include <cstdio>
 
 struct Matrix {
-	std::array<float> elems;
+	float *elems;
 	int rows;
 	int columns;
 };
@@ -15,25 +15,28 @@ Matrix multiply(Matrix a, Matrix b) {
 	} else {
 		// split A and B
 	}
+	return Matrix{};
 }
 
 Matrix multiply_impl(Matrix a, Matrix b) {
 	Matrix c = Matrix {
-		.elems = std::array<float, a.rows * b.columns>{},
+		.elems = new float[a.rows * b.columns],
 		.rows = a.rows,
 		.columns = b.columns,
-	}
+	};
 	for (int i = 0; i < a.rows; i++) {
 		for (int j = 0; j < b.columns; j++) {
 			float sum = 0;
 			for (int k = 0; k < a.columns; k++) {
-				sum += a.elems[i * a.columns + k] * b[k * b.columns + j]
+				sum += a.elems[i * a.columns + k] * b.elems[k * b.columns + j];
 			}
+			c.elems[i * c.columns + j] = sum;
 		}
 	}
-	return c
+	return c;
 }
 
 int main() {
-	
+	std::printf("Hello\n");
+	return 0;
 }
