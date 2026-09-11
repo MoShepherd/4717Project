@@ -29,6 +29,7 @@ Matrix multiply_impl(Matrix a, Matrix b) {
 			for (int k = 0; k < a.columns; k++) {
 				sum += a.elems[i * a.columns + k] * b[k * b.columns + j]
 			}
+            c.elems[j+i*c.columns]=sum;
 		}
 	}
 	return c
