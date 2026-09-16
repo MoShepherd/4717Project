@@ -1,10 +1,12 @@
-#include <cstdio>
+#include <stdio.h>
+#include <stdlib.h>
+#include <zmq.h>
 
-struct Matrix {
+typedef struct Matrix {
 	float *elems;
 	int rows;
 	int columns;
-};
+} Matrix;
 
 // algorithm: https://en.wikipedia.org/wiki/Matrix_multiplication_algorithm#Non-square_matrices
 Matrix multiply(Matrix a, Matrix b) {
@@ -15,14 +17,14 @@ Matrix multiply(Matrix a, Matrix b) {
 	} else {
 		// split A and B
 	}
-	return Matrix{};
+	return (Matrix) {};
 }
 
 Matrix multiply_impl(Matrix a, Matrix b) {
-	Matrix c = Matrix {
-		.elems = new float[a.rows * b.columns],
+	Matrix c = (Matrix) {
+		.elems = (float *) malloc(a.rows * b.columns * sizeof(float)),
 		.rows = a.rows,
-		.columns = b.columns,
+		.columns = b.columns
 	};
 	for (int i = 0; i < a.rows; i++) {
 		for (int j = 0; j < b.columns; j++) {
@@ -37,6 +39,6 @@ Matrix multiply_impl(Matrix a, Matrix b) {
 }
 
 int main() {
-	std::printf("Hello\n");
+	printf("Hello\n");
 	return 0;
 }
