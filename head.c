@@ -65,8 +65,8 @@ Matrix multiply(Matrix a, Matrix b, int threshold) {
             }
         }
         // Next recursion step
-        multiply(a, firstHorSplit, threshold);
-        multiply(b, secondHorSplit, threshold);
+        multiply(a, firstVerSplit, threshold);
+        multiply(b, secondVerSplit, threshold);
         
 	} else {
         // Split B horizontal
