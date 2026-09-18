@@ -10,15 +10,102 @@ typedef struct Matrix {
 } Matrix;
 
 // algorithm: https://en.wikipedia.org/wiki/Matrix_multiplication_algorithm#Non-square_matrices
-Matrix multiply(Matrix a, Matrix b) {
-	if (a.rows > b.columns && a.rows > b.rows) {
-		// split A vertically
+Matrix multiply(Matrix a, Matrix b, int threshold) {
+    
+    // Check condition for matrix multiplication
+    if(!(a.columns == b.rows)){
+        a.columns = -1;
+        a.rows = -1;
+        printf("Violate condition for matrix multiplication");
+        return a;
+    }
+
+    // Recursion Head
+    if(a.columns && a.rows && b.rows < threshold){
+        // Call workers
+    }
+    
+    // Recursion Body
+    Matrix firstHorSplit, secondHorSplit, firstVerSplit, secondVerSplit;
+	
+    // Split A horizontal
+    if (a.rows > b.columns && a.rows > b.rows) {
+        firstHorSplit.rows = a.rows / 2;
+        firstHorSplit.columns = a.columns;
+        secondHorSplit.rows = a.rows - a.rows / 2;
+        secondHorSplit.columns = a.columns;
+        for(int i = 0; i < a.rows; i++){
+            for(int j = 0; j < a.columns){
+                if(i < a.rows/2){
+                    firstHorSplit.elems[i + j] = a.elems[i + j];
+                }
+                else{
+                    secondHorSplit.elems[i + j] = a.elems[i + j];
+                }
+            }
+        }
+        // Next Recursion Step
+        multiply(firstHorSplit, b, threshold);
+        multiply(secondHorSplit, b, threshold);
+
 	} else if (b.rows >= a.rows && b.rows > b.columns) {
-		// split B horizontally
+        // Split B vertical
+        firstVerSplit.columns = b.columns / 2;
+        firstVerSplit.rows = b.rows;
+        secondVerSplit.columns = b.columns - b.columns / 2;
+        secondVerSplit.rows = b.rows;
+        for(int i = 0; i < b.rows; i++){
+            for(int j = 0; j < b.columns){
+                if(i < b.columns / 2){
+                    firstVerSplit.elems[i + j] = b.elems[i + j];
+                }
+                else{
+                    secondVerSplit.elems[i + j] = b.elems[i + j];
+                }
+            }
+        }
+        // Next recursion step
+        multiply(a, firstHorSplit, threshold);
+        multiply(b, secondHorSplit, threshold);
+        
 	} else {
-		// split A and B
+        // Split B horizontal
+        firstHorSplit.rows = b.rows / 2;
+        firstHorSplit.columns = b.columns;
+        secondHorSplit.rows = b.rows - b.rows / 2;
+        secondHorSplit.columns = b.columns;
+        for(int i = 0; i < b.rows; i++){
+            for(int j = 0; j < b.columns){
+                if(i < b.rows / 2){
+                    firstHorSplit.elems[i + j] = b.elems[i + j];
+                }
+                else{
+                    secondHorSplit.elems[i + j] = b.elems[i + j];
+                }
+            }
+        }
+
+        // Split A vertical
+        firstVerSplit.columns = a.columns / 2;
+        firstVerSplit.rows = a.rows;
+        secondVerSplit.columns = a.columns - a.columns / 2;
+        secondVerSplit.rows = a.rows; 
+        for(int i = 0; i < a.rows; i++){
+            for(int j = 0; j < a.columns){
+                if(i < a.columns / 2){
+                    firstVerSplit.elems[i + j] = a.elems[i + j];
+                }
+                else{
+                    secondVerSplit.elems[i + j] = a.elems[i + j];
+                }
+            }
+        }
+        // Next recursion step
+        multiply(firstVerSplit, firstHorSplit, threshold);
+        multiply(firstVerSplit, secondHorSplit, threshold);
+        multiply(secondVerSplit, firstHorSplit, threshold);
+        multiply(secondVerSplit, secondHorSplit, threshold);
 	}
-	return (Matrix) {};
 }
 
 Matrix multiply_impl(Matrix a, Matrix b) {
