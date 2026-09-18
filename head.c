@@ -1,6 +1,7 @@
+#include <zmq.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <zmq.h>
+#include <assert.h>
 
 typedef struct Matrix {
 	float *elems;
@@ -39,6 +40,10 @@ Matrix multiply_impl(Matrix a, Matrix b) {
 }
 
 int main() {
-	printf("Hello\n");
+	void *zmq_ctx = zmq_ctx_new();
+	void *resp = zmq_socket(zmq_ctx, ZMQ_REQ);
+	int response = zmq_bind(resp, "tcp://*:4770");
+	assert(response == 0);
+
 	return 0;
 }
