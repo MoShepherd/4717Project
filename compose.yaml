@@ -1,0 +1,17 @@
+services:
+  head:
+    build:
+      target: head
+    ports:
+      - "4770:4770"
+      - "4771:4771"
+    networks:
+      - cloud
+  worker:
+    build:
+      target: worker
+    networks:
+      - cloud
+networks:
+  cloud:
+    driver: bridge
