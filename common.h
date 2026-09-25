@@ -7,6 +7,11 @@ typedef struct Matrix {
 	int columns;
 } Matrix;
 
+typedef struct Result_Info {
+	int row;
+	int column;
+} Result_Info;
+
 void write_int(char *buf, int i) {
 	buf[0] = i % 256;
 	buf[1] = (i >> 8) % 256;
@@ -14,8 +19,18 @@ void write_int(char *buf, int i) {
 	buf[3] = (i >> 24) % 256;
 }
 
-int read_int(char* buf) {
+int read_int(char *buf) {
 	return buf[0] + (buf[1] << 8) + (buf[2] << 16) + (buf[3] << 24);
+}
+
+int write_result_info(char *buf, Result_Info info) {
+	memcpy(buf, &info, sizeof(Result_Info));
+	return sizeof(Result_Info);
+}
+
+int read_result_info(char *buf, Result_Info *info) {
+	memcpy(info, buf, sizeof(Result_Info));
+	return sizeof(Result_Info);
 }
 
 int write_matrix(char *buf, Matrix m) {
@@ -59,7 +74,7 @@ void print_matrix(Matrix m) {
 			printf("\n  ");
 		}
 	}
-	printf("}");
+	printf("}\n");
 	fflush(stdout);
 }
 

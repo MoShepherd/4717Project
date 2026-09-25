@@ -40,6 +40,9 @@ int main(){
 		assert(n != -1);
 		
 		char *b = buf;
+		Result_Info info;
+		b += read_result_info(b, &info);
+		
 		Matrix m1 = read_matrix(b, &n);
 		b += n;
 		Matrix m2 = read_matrix(b, &n);
@@ -47,6 +50,7 @@ int main(){
 				
 		Matrix product = multiply(m1, m2);
 		b = buf;
+		b += write_result_info(b, info);
 		b += write_matrix(b, product);
 		zmq_send(push, buf, b - buf, 0);
 	}

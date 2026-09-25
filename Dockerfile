@@ -10,8 +10,8 @@ COPY head.c .
 COPY worker.c .
 COPY common.h .
 
-RUN clang -o head head.c -static -lzmq -lstdc++ -lsodium -O0
-RUN clang -o worker worker.c -static -lzmq -lstdc++ -lsodium -O0
+RUN clang -o head head.c -static -lzmq -lstdc++ -lsodium -std=c23
+RUN clang -o worker worker.c -static -lzmq -lstdc++ -lsodium -std=c23
 
 FROM scratch AS head
 
