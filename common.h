@@ -1,6 +1,8 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#define BUFFER_SIZE 1024
+
 typedef struct Matrix {
 	float *elems;
 	int rows;
@@ -67,7 +69,7 @@ Matrix read_matrix(char *buf, int *n) {
 void print_matrix(Matrix m) {
 	printf("{ ");
 	for (int r = 0; r < m.rows; r++) {
-		for (int c = 0; c < m.rows; c++) {
+		for (int c = 0; c < m.columns; c++) {
 			printf("%.0f ", m.elems[r * m.columns + c]);
 		}
 		if (r != m.rows - 1) {

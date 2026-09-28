@@ -10,17 +10,20 @@ COPY head.c .
 COPY worker.c .
 COPY common.h .
 
-RUN clang -o head head.c -static -lzmq -lstdc++ -lsodium -std=c23
-RUN clang -o worker worker.c -static -lzmq -lstdc++ -lsodium -std=c23
+RUN clang -o head head.c -static -lzmq -lstdc++ -lsodium -g -std=c23
+RUN clang -o worker worker.c -static -lzmq -lstdc++ -lsodium -g -std=c23
 
-FROM scratch AS head
+FROM alpine:latest AS head
+
+RUN apk update && apk add gdb
 
 COPY --from=build /app/head /head
+COPY .gdbinit /.gdbinit
 
 EXPOSE 4770
 EXPOSE 4771
 
-CMD ["/head"]
+CMD ["gdb", "-x", "/.gdbinit", "/head"]
 
 FROM scratch AS worker
 

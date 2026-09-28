@@ -8,7 +8,7 @@
 Matrix multiply(Matrix a, Matrix b) {
 	assert(a.columns == b.rows);
 	Matrix c = (Matrix) {
-		.elems = (float *) malloc(a.rows * b.columns * sizeof(float)),
+		.elems = (float *) calloc(a.rows * b.columns, sizeof(float)),
 		.rows = a.rows,
 		.columns = b.columns
 	};
@@ -24,19 +24,23 @@ Matrix multiply(Matrix a, Matrix b) {
 	return c;
 }
 
+char buf[BUFFER_SIZE];
+
 int main(){
 	void *zmq_ctx = zmq_ctx_new();
 	void *pull = zmq_socket(zmq_ctx, ZMQ_PULL);
+	int high_water_mark = 0;
+	zmq_setsockopt(pull, ZMQ_RCVHWM, &high_water_mark, 4);
 	int rc = zmq_connect(pull, "tcp://head:4770");
 	assert(rc == 0);
 	void *push = zmq_socket(zmq_ctx, ZMQ_PUSH);
+	zmq_setsockopt(push, ZMQ_SNDHWM, &high_water_mark, 4);
 	rc = zmq_connect(push, "tcp://head:4771");
 	
 	printf("worker started\n");
 	
 	while (1) {
-		char buf[256];
-		int n = zmq_recv(pull, buf, 256, 0);
+		int n = zmq_recv(pull, buf, BUFFER_SIZE, 0);
 		assert(n != -1);
 		
 		char *b = buf;

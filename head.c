@@ -8,7 +8,10 @@
 #define MAX(i, j) (((i) > (j)) ? (i) : (j))
 // algorithm: https://en.wikipedia.org/wiki/Matrix_multiplication_algorithm#Non-square_matrices
 
-char send_buffer[256];
+#define THRESHOLD 10
+
+char send_buffer[BUFFER_SIZE];
+char recv_buffer[BUFFER_SIZE];
 
 void *push;
 void *pull;
@@ -16,17 +19,17 @@ void *pull;
 void split_horizontal(Matrix m, Matrix *top, Matrix *bottom) {
 	top->rows = m.rows / 2;
 	top->columns = m.columns;
-	top->elems = calloc(top->rows * top->columns, sizeof(float));
+	top->elems = (float *) calloc(top->rows * top->columns, sizeof(float));
 	bottom->rows = m.rows - top->rows;
 	bottom->columns = m.columns;
-	bottom->elems = calloc(bottom->rows * bottom->columns, sizeof(float));
+	bottom->elems = (float *) calloc(bottom->rows * bottom->columns, sizeof(float));
 	
 	for (int r = 0; r < m.rows; r++) {
 		for (int c = 0; c < m.columns; c++) {
 			if (r < top->rows) {
-				top->elems[r * top->rows + c] = m.elems[r * m.rows + c];
+				top->elems[r * top->columns + c] = m.elems[r * m.columns + c];
 			} else {
-				bottom->elems[(r - top->rows) * bottom->rows + c] = m.elems[r * m.rows + c];
+				bottom->elems[(r - top->rows) * bottom->columns + c] = m.elems[r * m.columns + c];
 			}
 		}
 	}
@@ -35,46 +38,41 @@ void split_horizontal(Matrix m, Matrix *top, Matrix *bottom) {
 void split_vertical(Matrix m, Matrix *left, Matrix *right) {
 	left->rows = m.rows;
 	left->columns = m.columns / 2;
-	left->elems = calloc(left->rows * left->columns, sizeof(float));
+	left->elems = (float *) calloc(left->rows * left->columns, sizeof(float));
 	right->rows = m.rows;
 	right->columns = m.columns - left->columns;
-	right->elems = calloc(right->rows * right->columns, sizeof(float));
+	right->elems = (float *) calloc(right->rows * right->columns, sizeof(float));
 	
 	for (int r = 0; r < m.rows; r++) {
 		for (int c = 0; c < m.columns; c++) {
 			if (c < left->columns) {
-				left->elems[r * left->rows + c] = m.elems[r * m.rows + c];
+				left->elems[r * left->columns + c] = m.elems[r * m.columns + c];
 			} else {
-				right->elems[r * right->rows + c - left->columns] = m.elems[r * m.rows + c];
+				right->elems[r * right->columns + c - left->columns] = m.elems[r * m.columns + c];
 			}
 		}
 	}
 }
 
 int multiply_rec(Matrix a, Matrix b, int threshold, Result_Info ri) {
+	
     // Check condition for matrix multiplication
     if(!(a.columns == b.rows)){
-        a.columns = -1;
-        a.rows = -1;
         printf("Violate condition for matrix multiplication");
         return -1;
     }
 
     // Recursion Head
-    if(a.columns <= threshold && a.rows <= threshold && b.columns <= threshold){
+	int largest_dimension = MAX(a.rows, MAX(a.columns, b.columns));
+    
+    if(largest_dimension <= threshold){
 		char *buf = send_buffer;
 		buf += write_result_info(buf, ri);
 		buf += write_matrix(buf, a);
 		buf += write_matrix(buf, b);
 		zmq_send(push, send_buffer, buf - send_buffer, 0);
-		printf("%d %d\n", ri.row, ri.column);
-		print_matrix(a);
-		print_matrix(b);
-		
 		return 1;
     }
-    
-	int largest_dimension = MAX(a.rows, MAX(a.columns, b.columns));
 
     // Recursion Body
 
@@ -88,6 +86,10 @@ int multiply_rec(Matrix a, Matrix b, int threshold, Result_Info ri) {
         // Next recursion step
         int messages = multiply_rec(aleft, btop, threshold, ri);
         messages += multiply_rec(aright, bbottom, threshold, ri);
+		free(btop.elems);
+		free(bbottom.elems);
+		free(aleft.elems);
+		free(aright.elems);
 		return messages;
 	} else if (largest_dimension == a.rows) {
 		Matrix atop, abottom;
@@ -99,6 +101,8 @@ int multiply_rec(Matrix a, Matrix b, int threshold, Result_Info ri) {
         // Next Recursion Step
         int messages = multiply_rec(atop, b, threshold, ri);
         messages += multiply_rec(abottom, b, threshold, new_ri);
+		free(atop.elems);
+		free(abottom.elems);
 		return messages;
 	} else {
 		Matrix bleft, bright;
@@ -110,6 +114,8 @@ int multiply_rec(Matrix a, Matrix b, int threshold, Result_Info ri) {
         // Next recursion step
         int messages = multiply_rec(a, bleft, threshold, ri);
         messages += multiply_rec(a, bright, threshold, new_ri);
+		free(bleft.elems);
+		free(bright.elems);
 		return messages;
 	}
 }
@@ -118,22 +124,20 @@ Matrix multiply(Matrix a, Matrix b) {
 	Matrix result = {
 		.rows = a.rows,
 		.columns = b.columns,
-		.elems = calloc(a.rows * b.columns, sizeof(float))
+		.elems = (float *) calloc(a.rows * b.columns, sizeof(float))
 	};
 	
-	char recv_buffer[256];
-	int messages = multiply_rec(a, b, 1, (Result_Info) { 0, 0 });
+	int messages = multiply_rec(a, b, THRESHOLD, (Result_Info) { 0, 0 });
 	while (messages) {
-		zmq_recv(pull, recv_buffer, 256, 0);
+		zmq_recv(pull, recv_buffer, BUFFER_SIZE, 0);
 		Result_Info info;
 		char *buf = recv_buffer;
 		buf += read_result_info(buf, &info);
 		Matrix product = read_matrix(buf, NULL);
-//		print_matrix(product);
 		
 		for (int r = 0; r < product.rows; r++) {
 			for (int c = 0; c < product.columns; c++) {
-				result.elems[(r + info.row) * result.columns + c + info.column] += product.elems[r * product.rows + c];
+				result.elems[(r + info.row) * result.columns + c + info.column] += product.elems[r * product.columns + c];
 			}
 		}
 		
@@ -162,31 +166,59 @@ Matrix multiply_impl(Matrix a, Matrix b) {
 	return c;
 }
 
+Matrix random_matrix(int rows, int columns) {
+	Matrix m = (Matrix) {
+		.elems = (float *) calloc(rows * columns, sizeof(float)),
+		.rows = rows,
+		.columns = columns,
+	};
+	for (int i = 0; i < rows * columns; i++) {
+		m.elems[i] = (float) ( rand() % 10 );
+	}
+	return m;
+}
+
 int main() {
 	void *zmq_ctx = zmq_ctx_new();
 	push = zmq_socket(zmq_ctx, ZMQ_PUSH);
+	int high_water_mark = 0;
+	zmq_setsockopt(push, ZMQ_SNDHWM, &high_water_mark, 4);
 	int rc = zmq_bind(push, "tcp://*:4770");
 	assert(rc == 0);
 	pull = zmq_socket(zmq_ctx, ZMQ_PULL);
+	zmq_setsockopt(pull, ZMQ_RCVHWM, &high_water_mark, 4);
 	rc = zmq_bind(pull, "tcp://*:4771");
 	assert(rc == 0);
 	
 	printf("head started\n");
 	
-	float elems1[4] = {1, 2, 3, 4};
-	float elems2[4] = {5, 6, 7, 8};
-	Matrix m1 = (Matrix) {
-		.elems = elems1,
-		.rows = 2,
-		.columns = 2
-	};
-	Matrix m2 = (Matrix) {
-		.elems = elems2,
-		.rows = 2,
-		.columns = 2
-	};
+	srand(4770);
 	
-	print_matrix(multiply(m1, m2));
+	Matrix m1 = random_matrix(1000, 1000);
+	Matrix m2 = random_matrix(1000, 1000);
+	
+	Matrix result = multiply(m1, m2);
+	Matrix reference = multiply_impl(m1, m2);
+
+	bool do_match = false;
+	if (result.rows == reference.rows && result.columns == reference.columns) {
+		do_match = true;
+		for (int i = 0; i < reference.rows * reference.columns; i++) {
+			if (reference.elems[i] != result.elems[i]) {
+				do_match = false;
+			}
+		}
+	}
+	if (do_match) {
+		printf("multiplication successful");
+	} else {
+		printf("multiplication unsuccessful\n");
+		printf("reference:\n");
+		print_matrix(reference);
+		printf("result:\n");
+		print_matrix(result);
+	}
+	fflush(stdout);
 	
 	zmq_close(push);
 	zmq_close(pull);
